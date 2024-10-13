@@ -1,15 +1,20 @@
-const { Command } = require('commander');
+const { program } = require('commander');
 const fs = require('fs');
 
-const program = new Command();
+function writeOutput(output, result) {
+    try {
+        fs.writeFileSync(output, JSON.stringify(result, null, 2));
+    } catch (err) {
+        console.error('Error writing to output file:', err);
+        process.exit(1);
+    }
+}
 
 program
-    .version('1.0.0')
-    .requiredOption('-i, --input <path>', 'шлях до файлу, який даємо для читання')
-    .option('-o, --output <path>', 'шлях до файлу, у якому записуємо результат')
-    .option('-d, --display', 'виводити результат у консоль');
-
-program.parse(process.argv);
+    .requiredOption('-i, --input <file>')
+    .option('-o, --output <file>')
+    .option('-d, --display')
+    .parse()
 
 const options = program.opts();
 
@@ -18,52 +23,35 @@ if (!options.input) {
     process.exit(1);
 }
 
-let inputData;
-try {
-    inputData = fs.readFileSync(options.input, 'utf-8');
-} catch (error) {
+if (!fs.existsSync(options.input)) {
     console.error('Cannot find input file');
     process.exit(1);
 }
 
-let jsonData;
+let result;
+
 try {
-    jsonData = JSON.parse(inputData);
-} catch (error) {
-    console.error('Invalid JSON format');
+    const data = fs.readFileSync(options.input, 'utf-8');
+    const records = JSON.parse(data);
+    const formattedResults = {};
+
+    records.forEach(record => {
+        if (record.txt === "Доходи, усього" || record.txt === "Витрати, усього") {
+            formattedResults[record.txt] = record.value;
+        }
+    });
+
+    result = formattedResults;
+
+} catch (err) {
+    console.error('Error reading or parsing input file:', err);
     process.exit(1);
 }
 
-const result = {};
-let foundIncome = false; 
-let foundExpenses = false; 
-
-if (Array.isArray(jsonData)) {
-    jsonData.forEach(item => {
-        if (item.txt === 'Доходи, усього') {
-            result['Доходи, усього'] = item.value;
-            foundIncome = true; 
-        }
-        if (item.txt === 'Витрати, усього') {
-            result['Витрати, усього'] = item.value;
-            foundExpenses = true; 
-        }
-    });
-}
-
-if (!foundIncome) {
-    console.warn('Доходи, усього не знайдено');
-}
-if (!foundExpenses) {
-    console.warn('Витрати, усього не знайдено');
+if (options.output) {
+    writeOutput(options.output, result);
 }
 
 if (options.display) {
-    Object.entries(result).forEach(([key, value]) => {
-        console.log(`${key}: ${value}`);
-    });
-}
-
-if (options.output) {
-    fs.writeFileSync(options.output, JSON.stringify(result, null, 2));
+    console.log(result);
 }
