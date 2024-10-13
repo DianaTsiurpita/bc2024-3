@@ -35,15 +35,27 @@ try {
 }
 
 const result = {};
-if (jsonData && Array.isArray(jsonData)) {
+let foundIncome = false; 
+let foundExpenses = false; 
+
+if (Array.isArray(jsonData)) {
     jsonData.forEach(item => {
-        if (item.category === 'Доходи, усього') {
+        if (item.txt === 'Доходи, усього') {
             result['Доходи, усього'] = item.value;
+            foundIncome = true; 
         }
-        if (item.category === 'Витрати, усього') {
+        if (item.txt === 'Витрати, усього') {
             result['Витрати, усього'] = item.value;
+            foundExpenses = true; 
         }
     });
+}
+
+if (!foundIncome) {
+    console.warn('Доходи, усього не знайдено');
+}
+if (!foundExpenses) {
+    console.warn('Витрати, усього не знайдено');
 }
 
 if (options.display) {
