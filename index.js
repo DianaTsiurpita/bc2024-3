@@ -5,16 +5,38 @@ function writeOutput(output, result) {
     try {
         fs.writeFileSync(output, JSON.stringify(result, null, 2));
     } catch (err) {
-        console.error('Error writing to output file:', err);
+        console.error('Error writing to output file:', err.message);
         process.exit(1);
     }
 }
 
+function handleErrorOutput(str, write) {
+    if (str.includes('-i')) {
+        write('Please, specify input file\n'); 
+    } else {
+        write(str); 
+    }
+}
+
+function handleFileNotFoundError(str, write) {
+    if (str.includes('Cannot find input file')) {
+        write('Cannot find input file\n');
+    }
+}
+
+program.configureOutput({
+    outputError: (str, write) => {
+        handleErrorOutput(str, write);
+        handleFileNotFoundError(str, write);
+    }
+});
+
 program
-    .requiredOption('-i, --input <file>')
-    .option('-o, --output <file>')
-    .option('-d, --display')
-    .parse()
+    .requiredOption('-i, --input <file>', 'Input file path')
+    .option('-o, --output <file>', 'Output file path')
+    .option('-d, --display', 'Display result in console')
+    .parse(process.argv);
+
 
 const options = program.opts();
 
@@ -44,7 +66,7 @@ try {
     result = formattedResults;
 
 } catch (err) {
-    console.error('Error reading or parsing input file:', err);
+    console.error('Error reading or parsing input file:', err.message);
     process.exit(1);
 }
 
